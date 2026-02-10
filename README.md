@@ -30,7 +30,7 @@ To ensure long-term availability, it is recommended to keep these files in your 
 Move the Squeezelite binary to the vacuum's persistent data partition and make it executable:
 
     cd /mnt/data
-    # Upload the binary to this folder
+    wget https://github.com/torsteinelv/valetudo-squeezelite-media-player/raw/refs/heads/main/squeezelite-armv7
     chmod +x squeezelite-armv7
 
 ### Service & Watchdog Script
