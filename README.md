@@ -27,10 +27,11 @@ To ensure long-term availability, it is recommended to keep these files in your 
 ## 1. Vacuum Setup (SSH)
 
 ### Installation
-Move the Squeezelite binary to the vacuum's persistent data partition and make it executable:
+Move the Squeezelite binary to the vacuum's persistent data partition and make it executable.
+*Note: This downloads the binary directly from this repository.*
 
     cd /mnt/data
-    wget https://github.com/torsteinelv/valetudo-squeezelite-media-player/raw/refs/heads/main/squeezelite-armv7
+    wget https://raw.githubusercontent.com/torsteinelv/valetudo-squeezelite-media-player/main/squeezelite-armv7
     chmod +x squeezelite-armv7
 
 ### Service & Watchdog Script
@@ -44,7 +45,7 @@ Create the file `/etc/init/S99squeezelite`. This script acts as an "Immortal Wat
     run_watchdog() {
         while true; do
             if ! ps | grep -v grep | grep -q "squeezelite-armv7"; then
-                /mnt/data/squeezelite-armv7 -n "$PLAYER_NAME" -s $LMS_IP -o hw:0,0 -u M -a 40:4:: > /dev/null 2>&1
+                /mnt/data/squeezelite-armv7 -n "$PLAYER_NAME" -s $LMS_IP -o hw:0,0 -u M -a 40:4:: > /dev/null 2>&1 &
             fi
             sleep 15
         done
@@ -71,7 +72,18 @@ Create the file `/etc/init/S99squeezelite`. This script acts as an "Immortal Wat
 
 ---
 
-## 2. Firewall Configuration (Crucial)
+## 2. Server Setup (LMS)
+
+We recommend using the **Logitech Media Server (Lyrion)** Add-on for Home Assistant.
+
+1.  **Add Repository:** Go to the Add-on Store -> Repositories and add:
+    `https://github.com/pssc/ha-addon-lms`
+2.  **Install:** Search for "Logitech Media Server" and install it.
+3.  **Verify:** Open the LMS Web UI (port 9000). Once the vacuum script is running (Step 1), "Roborock" should appear as a player in the top right corner.
+
+---
+
+## 3. Firewall Configuration (Crucial)
 
 If the vacuum is on an IOT VLAN, you **must** allow traffic to the Home Assistant IP on these ports:
 
@@ -79,12 +91,24 @@ If the vacuum is on an IOT VLAN, you **must** allow traffic to the Home Assistan
 | :--- | :--- | :--- |
 | **8123** | **TCP** | **Internal TTS Proxy (Vacuum downloads the audio file here)** |
 | 3483 | TCP/UDP | SlimProto Control & Discovery |
+| 9000 | TCP | LMS Web Interface & Streaming |
 
 ---
 
-## 3. Home Assistant Implementation
+## 4. Home Assistant Integration
 
-### Generic TTS Action (YAML)
+For the vacuum to appear as a `media_player` entity in Home Assistant (required for TTS), you must add the integration:
+
+1.  Go to **Settings** -> **Devices & Services**.
+2.  Click **Add Integration** and search for **Squeezebox (Lyrion)**.
+3.  If LMS is running, it should be auto-discovered. If not, enter the IP of your LMS server.
+4.  The vacuum will now appear as `media_player.roborock`.
+
+---
+
+## 5. Usage (TTS Action)
+
+Since the S5 is very responsive, you can trigger speech directly without any delay or padding.
 
     action: tts.speak
     target:
@@ -96,8 +120,7 @@ If the vacuum is on an IOT VLAN, you **must** allow traffic to the Home Assistan
 
 ---
 
-## 💡 Lessons Learned & Tips
+## Lessons Learned & Tips
 
 * **Mono Mixing:** The Roborock S5 has a single speaker. The `-u M` flag in Squeezelite is mandatory to properly downmix stereo content.
 * **Firewall blockage:** If the vacuum connects to LMS but remains silent during TTS, check if port 8123 is blocked. The vacuum needs to reach the HA web server to fetch the generated audio file.
-* **Internal URL:** Ensure Home Assistant's **Internal URL** is correctly configured to the local IP. If HA tries to serve the file via an external proxy (like Cloudflare), the vacuum might fail to download the audio.
