@@ -79,14 +79,12 @@ If the vacuum is on an IOT VLAN, you **must** allow traffic to the Home Assistan
 | :--- | :--- | :--- |
 | **8123** | **TCP** | **Internal TTS Proxy (Vacuum downloads the audio file here)** |
 | 3483 | TCP/UDP | SlimProto Control & Discovery |
-| 9000 | TCP | LMS Web Interface & Streaming |
 
 ---
 
 ## 3. Home Assistant Implementation
 
 ### Generic TTS Action (YAML)
-Since the S5 is very responsive, you can trigger speech directly without any delay or padding.
 
     action: tts.speak
     target:
