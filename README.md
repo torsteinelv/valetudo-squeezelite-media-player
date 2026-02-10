@@ -1,8 +1,8 @@
-# TalkyRock: High-Fidelity TTS for Roborock S5
+# TalkyRock: High-Fidelity Audio for Roborock S5
 
-This project documents how to transform a rooted **Roborock S5 (running Valetudo)** into a high-quality AI-powered smart speaker. By using Squeezelite, Logitech Media Server (LMS), and ElevenLabs, your vacuum can speak with natural, high-fidelity voices.
+This project documents how to transform a rooted **Roborock S5 (running Valetudo)** into a high-quality smart speaker. By using Squeezelite and Logitech Media Server (LMS), your vacuum can play music, radio, and Text-to-Speech (TTS) directly from Home Assistant.
 
-**Status:** Verified and tested on Roborock S5.
+**Status:** Verified and tested on Roborock S5. Highly responsive audio gate (no padding required).
 
 ---
 
@@ -11,7 +11,7 @@ This project documents how to transform a rooted **Roborock S5 (running Valetudo
 * **Device:** Roborock S5 (Rooted, Valetudo).
 * **Audio Client:** `Squeezelite-armv7` running as a background service.
 * **Audio Server:** Logitech Media Server (LMS / Lyrion) via Home Assistant.
-* **TTS Engine:** ElevenLabs (via Home Assistant Integration).
+* **TTS Engine:** Any Home Assistant compatible TTS service.
 * **Networking:** IOT VLAN to Management LAN communication.
 
 ---
@@ -31,7 +31,7 @@ To ensure long-term availability, it is recommended to keep these files in your 
 Move the Squeezelite binary to the vacuum's persistent data partition and make it executable:
 
     cd /mnt/data
-    # Upload or download the binary here
+    # Upload the binary to this folder
     chmod +x squeezelite-armv7
 
 ### Service & Watchdog Script
@@ -43,8 +43,6 @@ Create the file `/etc/init/S99squeezelite`. This script acts as an "Immortal Wat
     PLAYER_NAME="Roborock"
 
     run_watchdog() {
-        # Wait for network to stabilize after boot
-        sleep 15
         while true; do
             if ! ps | grep -v grep | grep -q "squeezelite-armv7"; then
                 /mnt/data/squeezelite-armv7 -n "$PLAYER_NAME" -s $LMS_IP -o hw:0,0 -u M -a 40:4:: > /dev/null 2>&1
@@ -84,31 +82,25 @@ If the vacuum is on an IOT VLAN, you **must** allow traffic to the Home Assistan
 | 3483 | TCP/UDP | SlimProto Control & Discovery |
 | 9000 | TCP | LMS Web Interface & Streaming |
 
-*Note: Without port 8123, the vacuum will connect to LMS but will be unable to download the TTS audio, leading to 504 Gateway Timeouts.*
-
 ---
 
 ## 3. Home Assistant Implementation
 
-### ElevenLabs Action (YAML)
-To get the best results on an S5, use leading periods (padding) to wake up the speaker hardware and specify the multilingual model to avoid language detection issues.
+### Generic TTS Action (YAML)
+Since the S5 is very responsive, you can trigger speech directly without any delay or padding.
 
     action: tts.speak
     target:
-      entity_id: tts.elevenlabs
+      entity_id: tts.google_en_com  # Or your preferred TTS provider
     data:
       media_player_entity_id: media_player.roborock
-      message: ".......... Hello, I am ready to clean your floors."
+      message: "The vacuuming is complete. Returning to the dock."
       cache: true
-      options:
-        model_id: "eleven_multilingual_v2"
-        voice: "Rachel"
 
 ---
 
 ## 💡 Lessons Learned & Tips
 
 * **Mono Mixing:** The Roborock S5 has a single speaker. The `-u M` flag in Squeezelite is mandatory to properly downmix stereo content.
-* **The "Danish" Trap:** If your Norwegian or Swedish text sounds Danish, ensure `model_id: "eleven_multilingual_v2"` is explicitly defined in your call.
-* **Cloudflare/DNS:** If using a reverse proxy (like Cloudflare), ensure Home Assistant's **Internal URL** is set to the local IP. The vacuum cannot download TTS files through Cloudflare's 504 timeout filters.
-* **Audio Padding:** The S5 audio gate takes ~1-2 seconds to open. Always start your TTS messages with `..........` (periods).
+* **Firewall blockage:** If the vacuum connects to LMS but remains silent during TTS, check if port 8123 is blocked. The vacuum needs to reach the HA web server to fetch the generated audio file.
+* **Internal URL:** Ensure Home Assistant's **Internal URL** is correctly configured to the local IP. If HA tries to serve the file via an external proxy (like Cloudflare), the vacuum might fail to download the audio.
