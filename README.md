@@ -1,4 +1,4 @@
-# TalkyRock: High-Fidelity Audio for Roborock S5
+# MediaPlayer for valetudo vacuum cleaners
 
 This project documents how to transform a rooted **Roborock S5 (running Valetudo)** into a high-quality smart speaker. By using Squeezelite and Logitech Media Server (LMS), your vacuum can play music, radio, and Text-to-Speech (TTS) directly from Home Assistant.
 
