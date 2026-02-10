@@ -6,17 +6,16 @@ This project documents how to transform a rooted **Roborock S5 (running Valetudo
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 * **Device:** Roborock S5 (Rooted, Valetudo).
 * **Audio Client:** `Squeezelite-armv7` running as a background service.
 * **Audio Server:** Logitech Media Server (LMS / Lyrion) via Home Assistant.
 * **TTS Engine:** Any Home Assistant compatible TTS service.
-* **Networking:** IOT VLAN to Management LAN communication.
 
 ---
 
-## 📦 Required Files
+## Required Files
 
 To ensure long-term availability, it is recommended to keep these files in your own repository:
 
