@@ -1,4 +1,4 @@
-# MediaPlayer for valetudo vacuum cleaners
+# TalkyRock: High-Fidelity Audio for Roborock S5
 
 This project documents how to transform a rooted **Roborock S5 (running Valetudo)** into a high-quality smart speaker. By using Squeezelite and Logitech Media Server (LMS), your vacuum can play music, radio, and Text-to-Speech (TTS) directly from Home Assistant.
 
@@ -35,30 +35,31 @@ Move the Squeezelite binary to the vacuum's persistent data partition and make i
     chmod +x squeezelite-armv7
 
 ### Service & Watchdog Script
-Create the file `/etc/init/S99squeezelite`. This script acts as an "Immortal Watchdog," checking every 15 seconds if the process is running and restarting it if necessary.
+Create the file `/etc/init/S99squeezelite`. This script acts as an "Immortal Watchdog."
+**Important:** We include a 60-second sleep at start to prevent boot loops and ensure the network is ready.
 
     #!/bin/sh
-    
+
     LMS_IP="10.10.10.101" # CHANGE THIS to your HA/LMS IP
     PLAYER_NAME="Roborock"
-    
+
     run_watchdog() {
-        # VIKTIG: Vent 60 sekunder så roboten rekker å boote helt og koble til WiFi
-        # Dette hindrer boot-loop hvis noe går galt.
+        # SAFETY: Wait 60s for Wi-Fi and system to fully boot
+        # This prevents boot-loops if the network isn't ready.
         sleep 60
-    
+        
         while true; do
             if ! ps | grep -v grep | grep -q "squeezelite-armv7"; then
-                # Start Squeezelite i bakgrunnen
+                # Start Squeezelite in background
                 /mnt/data/squeezelite-armv7 -n "$PLAYER_NAME" -s $LMS_IP -o hw:0,0 -u M -a 40:4:: > /dev/null 2>&1 &
             fi
             sleep 15
         done
     }
-    
+
     case "$1" in
         start)
-            # '&' tegnet her er også kritisk for at den ikke skal stoppe oppstarten
+            # CRITICAL: The '&' ensures this runs in background and doesn't block boot
             run_watchdog &
             ;;
         stop)
@@ -126,7 +127,9 @@ Since the S5 is very responsive, you can trigger speech directly without any del
 
 ---
 
-## Lessons Learned & Tips
+## 💡 Lessons Learned & Tips
 
+* **Boot Loop Risk:** We experienced that starting Squeezelite too early can freeze the network initialization, causing a boot loop that requires a factory reset or re-flash to fix. The `sleep 60` command in the startup script is **critical** to ensure the system is fully online before the player starts.
+* **Exclusive Audio Access:** Squeezelite takes direct control of the audio hardware (`hw:0,0`). This means the robot's native voice prompts (e.g., "Starting cleaning") might be silenced while the service is running. This is expected behavior.
 * **Mono Mixing:** The Roborock S5 has a single speaker. The `-u M` flag in Squeezelite is mandatory to properly downmix stereo content.
 * **Firewall blockage:** If the vacuum connects to LMS but remains silent during TTS, check if port 8123 is blocked. The vacuum needs to reach the HA web server to fetch the generated audio file.
