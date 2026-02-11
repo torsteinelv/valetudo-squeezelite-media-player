@@ -38,21 +38,27 @@ Move the Squeezelite binary to the vacuum's persistent data partition and make i
 Create the file `/etc/init/S99squeezelite`. This script acts as an "Immortal Watchdog," checking every 15 seconds if the process is running and restarting it if necessary.
 
     #!/bin/sh
-
+    
     LMS_IP="10.10.10.101" # CHANGE THIS to your HA/LMS IP
     PLAYER_NAME="Roborock"
-
+    
     run_watchdog() {
+        # VIKTIG: Vent 60 sekunder så roboten rekker å boote helt og koble til WiFi
+        # Dette hindrer boot-loop hvis noe går galt.
+        sleep 60
+    
         while true; do
             if ! ps | grep -v grep | grep -q "squeezelite-armv7"; then
+                # Start Squeezelite i bakgrunnen
                 /mnt/data/squeezelite-armv7 -n "$PLAYER_NAME" -s $LMS_IP -o hw:0,0 -u M -a 40:4:: > /dev/null 2>&1 &
             fi
             sleep 15
         done
     }
-
+    
     case "$1" in
         start)
+            # '&' tegnet her er også kritisk for at den ikke skal stoppe oppstarten
             run_watchdog &
             ;;
         stop)
